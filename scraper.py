@@ -54,7 +54,7 @@ def getJobUrls(links):
         href = link.get_attribute("href")
         results.append(
            {
-               "job_url":"https://www.bestjobs.eu/loc-de-munca"+href
+               "job_url":"https://www.bestjobs.eu"+href
            }
        )
     return results
@@ -64,7 +64,7 @@ with sync_playwright() as p:
     page = browser.new_page()
     filters = {
         "location": "timisoara",
-        "roles": ["java developer", "backend engineer", "team lead"],
+        "roles": ["java developer"],
     }
     filters = formatRoles(filters)
     urls = buildUrls(filters)
@@ -76,7 +76,9 @@ with sync_playwright() as p:
     response = {
         "results": jobUrls
     }
-    print(response)
+
+    import json
+    print(json.dumps(response, indent=2, sort_keys=True))
     browser.close()
 
     
