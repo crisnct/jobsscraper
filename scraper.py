@@ -30,56 +30,75 @@
 	
 """
 
+import pprint
+from typing import List
 from playwright.sync_api import sync_playwright
-from models.filter import Filters
+from models.filter import Filter
+from models.response import AppResponse
+from models.result import Result
+from playwright.sync_api import Page
 
-def formatRoles(filters:Filters):
-    filters["roles"] = [role.replace(" ", "-") for role in filters["roles"]]
-    return filters
-def setLocation(filters):
-    return
+def formatRoles(filter:Filter) -> Filter:
+    if(filter.roles):
+        filter.roles = [role.replace(" ", "-") for role in filter.roles]
+    return filter
 
-def buildUrls (filters: Filters) :
-    url = "https://www.bestjobs.eu/"
-    results = []
-    filters = formatRoles(filters)
-    if(filters["location"]):
-        url+= 'locuri-de-munca-in-'+filters["location"]
-    for role in filters["roles"]:
-        url+="/"+role
-        results.append(url)
-    return results
-def getJobUrls(links):
-    results = []
+
+def buildSearchUrls (filter: Filter) -> List[str]:
+    baseUrl = "https://www.bestjobs.eu/"
+    searchUrls: List[str] = []
+    
+    if(filter.location):
+        baseUrl+= 'locuri-de-munca-in-'+filter.location
+    for role in filter.roles:
+        searchUrl = baseUrl + "/"+role
+        searchUrls.append(searchUrl)
+    return searchUrls
+
+"""def scrapJobUrls(:List[str]) -> List[Result]:
+    jobUrls = List[Result]
     for link in links:
         href = link.get_attribute("href")
-        results.append(
-           {
-               "job_url":"https://www.bestjobs.eu"+href
-           }
-       )
-    return results
+        jobUrls.append(Result(job_url="https://www.bestjobs.eu"+href))
+    return jobUrls"""
 
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page()
-    filters = {
-        "location": "timisoara",
-        "roles": ["java developer"],
-    }
-    filters = formatRoles(filters)
-    urls = buildUrls(filters)
-    jobUrls = []
-    for url in urls:
+def getJobUrls(page:Page, searchUrls:List[str]) -> List[str]:
+    for url in searchUrls:
         page.goto(url)
         links = page.locator("a[href].absolute.inset-0.z-1").all()
-        jobUrls.append(getJobUrls(links))
-    response = {
-        "results": jobUrls
-    }
+    return ["https://www.bestjobs.eu" + link.get_attribute("href") for link in links] 
+    
+def getCompanies(page:Page)->List[str]:
+    #To be implemented
+    return
 
-    import json
-    print(json.dumps(response, indent=2, sort_keys=True))
-    browser.close()
+def getMetadata(page:Page) -> List[dict]:
+    #To be implemented
+    return 
+
+
+def scrape(filter:Filter) -> AppResponse:
+   
+    filter = formatRoles(filter)
+    searchUrls = buildSearchUrls(filter)
+    jobUrls:List[str] = []
+    companies:List[str] = []
+    metadatas:List[str] = []
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        jobUrls = getJobUrls(page,searchUrls)
+        companies = getCompanies(page)
+        metadatas = getMetadata(page)
+        browser.close()
+    
+    
+    return AppResponse(
+        results=[
+            Result(company="", job_url=job_url, meta_info="") for job_url in jobUrls
+        ],
+        statistics=[]
+    )
 
     
