@@ -31,14 +31,15 @@
 """
 
 from playwright.sync_api import sync_playwright
+from types.filter import Filters
 
-def formatRoles(filters):
+def formatRoles(filters:Filters):
     filters["roles"] = [role.replace(" ", "-") for role in filters["roles"]]
     return filters
 def setLocation(filters):
     return
 
-def buildUrls (filters: map) :
+def buildUrls (filters: Filters) :
     url = "https://www.bestjobs.eu/"
     results = []
     filters = formatRoles(filters)
