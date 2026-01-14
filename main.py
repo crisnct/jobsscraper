@@ -14,4 +14,7 @@ async def read_root():
 def getScrapedJobs(request_body:Filter) -> dict: 
     results:List[Result] = []
     statistics:List[Statistic] = []
-    return {"filters":request_body}
+    return {
+        "results":results,
+        "statistics":statistics
+    }
