@@ -1,6 +1,6 @@
 from typing import List
 from pydantic import BaseModel
-from types.error import Error 
+from models.error import Error 
 
 
 class Statistic(BaseModel):

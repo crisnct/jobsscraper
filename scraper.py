@@ -31,7 +31,7 @@
 """
 
 from playwright.sync_api import sync_playwright
-from types.filter import Filters
+from models.filter import Filters
 
 def formatRoles(filters:Filters):
     filters["roles"] = [role.replace(" ", "-") for role in filters["roles"]]

@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import FastAPI
-from types.filter import Filter
-from types.result import Result
-from types.statistic import Statistic
+from models.filter import Filter
+from models.result import Result
+from models.statistic import Statistic
 
 app = FastAPI()
 
