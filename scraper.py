@@ -51,6 +51,7 @@ def buildSearchUrls (filter: Filter) -> List[str]:
     if(filter.location):
         baseUrl+= 'locuri-de-munca-in-'+filter.location
     for role in filter.roles:
+        
         searchUrl = baseUrl + "/"+role
         searchUrls.append(searchUrl)
     return searchUrls
