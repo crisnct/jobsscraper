@@ -60,7 +60,9 @@ async def scrape_single_page(page:Page, url:str) -> List[str]:
     try:
         await page.goto(url, timeout=3000)
         links:List[Locator] = await page.locator("a[href].absolute.inset-0.z-1").all()
-        return ["https://www.bestjobs.eu" + await link.get_attribute("href") for link in links]
+        hrefs = ["https://www.bestjobs.eu" + await link.get_attribute("href") for link in links]
+        await page.close()
+        return hrefs
     except Exception as e:
         return []
     
@@ -81,24 +83,13 @@ async def scrape(filter: Filter) -> AppResponse:
     async with async_playwright() as p:
         try:
             browser = await p.chromium.launch(timeout=50000)
-            page = await browser.new_page()
             pages = [await browser.new_page() for _ in range(len(search_urls))]
-
-            tasks = [ 
-                scrape_single_page(pages[i % len(pages)], url)
-                        for i, url in enumerate(search_urls)
-            ] 
+            tasks = [scrape_single_page(pages[i % len(pages)], url) for i, url in enumerate(search_urls)]
             res:List[List[str]] = await asyncio.gather(*tasks, return_exceptions=True)
-
-            return AppResponse(
-                results=[
-                    Result(company="", job_url=job_url, meta_info="") for job_url in list(itertools.chain(*res))
-                ],
-            )
+            return AppResponse(results=[Result(company="", job_url=job_url, meta_info="") for job_url in list(itertools.chain(*res))])
         except Exception:
             raise
         finally:
-            await page.close()
             await browser.close()
 
     
