@@ -30,9 +30,12 @@
 	
 """
 
-import pprint
+import asyncio
+import itertools
+import traceback
 from typing import List
-from playwright.sync_api import sync_playwright
+from xml.sax.xmlreader import Locator
+from playwright.async_api import async_playwright
 from models.filter import Filter
 from models.response import AppResponse
 from models.result import Result
@@ -46,28 +49,20 @@ def formatRoles(filter:Filter) -> Filter:
 
 def buildSearchUrls (filter: Filter) -> List[str]:
     baseUrl = "https://www.bestjobs.eu/"
-    searchUrls: List[str] = []
     
     if(filter.location):
         baseUrl+= 'locuri-de-munca-in-'+filter.location
-    for role in filter.roles:
-        
-        searchUrl = baseUrl + "/"+role
-        searchUrls.append(searchUrl)
-    return searchUrls
+    return [baseUrl + "/"+role for role in filter.roles]
 
-"""def scrapJobUrls(:List[str]) -> List[Result]:
-    jobUrls = List[Result]
-    for link in links:
-        href = link.get_attribute("href")
-        jobUrls.append(Result(job_url="https://www.bestjobs.eu"+href))
-    return jobUrls"""
 
-def getJobUrls(page:Page, searchUrls:List[str]) -> List[str]:
-    for url in searchUrls:
-        page.goto(url)
-        links = page.locator("a[href].absolute.inset-0.z-1").all()
-    return ["https://www.bestjobs.eu" + link.get_attribute("href") for link in links] 
+
+async def scrape_single_page(page:Page, url:str) -> List[str]:
+    try:
+        await page.goto(url, timeout=3000)
+        links:List[Locator] = await page.locator("a[href].absolute.inset-0.z-1").all()
+        return ["https://www.bestjobs.eu" + await link.get_attribute("href") for link in links]
+    except Exception as e:
+        return []
     
 def getCompanies(page:Page)->List[str]:
     #To be implemented
@@ -78,28 +73,32 @@ def getMetadata(page:Page) -> List[dict]:
     return 
 
 
-def scrape(filter:Filter) -> AppResponse:
-   
-    filter = formatRoles(filter)
-    searchUrls = buildSearchUrls(filter)
-    jobUrls:List[str] = []
-    companies:List[str] = []
-    metadatas:List[str] = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        jobUrls = getJobUrls(page,searchUrls)
-        companies = getCompanies(page)
-        metadatas = getMetadata(page)
-        browser.close()
+async def scrape(filter: Filter) -> AppResponse:
+    formatRoles(filter)
+    search_urls = buildSearchUrls(filter)
     
-    
-    return AppResponse(
-        results=[
-            Result(company="", job_url=job_url, meta_info="") for job_url in jobUrls
-        ],
-        statistics=[]
-    )
+    async with async_playwright() as p:
+        try:
+            browser = await p.chromium.launch(timeout=50000)
+            page = await browser.new_page()
+            pages = [await browser.new_page() for _ in range(len(search_urls))]
+
+            tasks = [ 
+                scrape_single_page(pages[i % len(pages)], url)
+                        for i, url in enumerate(search_urls)
+            ] 
+            res:List[List[str]] = await asyncio.gather(*tasks, return_exceptions=True)
+
+            return AppResponse(
+                results=[
+                    Result(company="", job_url=job_url, meta_info="") for job_url in list(itertools.chain(*res))
+                ],
+            )
+        except Exception:
+            raise
+        finally:
+            await page.close()
+            await browser.close()
 
     
