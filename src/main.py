@@ -5,7 +5,7 @@ from models.response import AppResponse
 from src.scraper_handler import ScraperHandler
 
 app = FastAPI()
-scraper_handler = ScraperHandler(BestJobsScrapper())
+
 
 
 @app.get("/")
@@ -15,7 +15,7 @@ async def read_root():
 @app.post("/scrape/jobs")
 async def getScrapedJobs(request_body:Filter) -> AppResponse: 
     try:
-        return await scraper_handler.run(request_body)
+        return await BestJobsScrapper(filter=request_body).scrape()
     except Exception as e:
         print(f"Error scraping : {e}")
         return AppResponse()

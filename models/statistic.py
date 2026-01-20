@@ -1,9 +1,8 @@
-from typing import List
+from typing import Optional
 from pydantic import BaseModel
-from models.error import Error 
+
 
 
 class Statistic(BaseModel):
-    totalRequestsSent:int
-    successfullRequests:int
-    errors:List[Error]
+    jobsFound:Optional[int] = 0
+    totalRequestsSent:Optional[int] = 0

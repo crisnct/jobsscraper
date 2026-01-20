@@ -6,4 +6,4 @@ from models.statistic import Statistic
 
 class AppResponse(BaseModel):
     results: Optional[List[Result]] = []
-    statistics: Optional[List[Statistic]] = []
+    statistics: Optional[Statistic] = None
