@@ -34,7 +34,7 @@ class BestJobsScrapper(Scrapper):
 
     async def __scrape_companies(self,page:Page) -> str:
         return [await selector.text_content() for selector in await page.locator("div.mt-2.line-clamp-1.w-full.text-sm.text-ink-medium").all()]
-    async def __scrape_metadata(self, page:Page, jobUrl:str)->str:
+    async def __scrape_metadata(self, page:Page, jobUrl:str)-> Metadata:
         try:
             print(jobUrl)
             await page.goto(jobUrl)
@@ -42,14 +42,15 @@ class BestJobsScrapper(Scrapper):
             await page.wait_for_load_state("domcontentloaded") 
             await page.evaluate("window.scrollTo(0, 0)")
             metadata = Metadata()
-            payment_locator = page.locator("span.font-bold").nth(0)
-            experience = ", ".join([await selector.text_content() for selector in await page.locator("a.hover\\:text-ink").all()])
+            payment_locator = page.locator("div.ml-2 span.text-base.font-bold").nth(0)
+            experience = ", ".join([await selector.text_content() for selector in await page.locator("div.ml-2 a.hover\\:text-ink").all()])
             metadata.experience = experience
             if await payment_locator.is_visible():
                 metadata.payment = await payment_locator.text_content()
-            work_type_locator = page.locator("span.font-bold").nth(1)
+            work_type_locator = page.locator("div.flex-1 span.font-bold").nth(1)
             if await work_type_locator.is_visible():
                 metadata.work_type = await work_type_locator.text_content()
+            print(metadata)
             return metadata
         except Exception:
             raise
@@ -64,6 +65,7 @@ class BestJobsScrapper(Scrapper):
             await page.evaluate("window.scrollTo(0, 0)")
             hrefs = await self.__scrape_hrefs(page)
             companies = await self.__scrape_companies(page)
+           
             return zip(hrefs,companies)
         except Exception:
             raise
@@ -87,15 +89,16 @@ class BestJobsScrapper(Scrapper):
                                                   for url 
                                                   in search_urls], 
                                                   return_exceptions=True)
-                metadatas = await asyncio.gather(*[self.__delay_task(3, self.__scrape_metadata(await self.__generate_page(browser), jobUrl=job_url)) 
-                                                  for job_url,_ 
-                                                  in list(itertools.chain(*response))], 
+                datas = list(itertools.chain(*response))
+                metadatas:List[Metadata] = await asyncio.gather(*[self.__delay_task(3, self.__scrape_metadata(await self.__generate_page(browser), jobUrl=job_url)) 
+                                                  for (job_url,_) 
+                                                  in datas], 
                                                   return_exceptions=True)
                
                 results = [Result(company=company, job_url=job_url, meta_info=metadata) 
                            for (job_url,company), metadata 
-                           in zip(list(itertools.chain(*response)), metadatas)]
-                print(results)
+                           in zip(datas, metadatas)]
+                
                 return AppResponse(
                   results=results
                 )
