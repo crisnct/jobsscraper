@@ -3,5 +3,6 @@ from pydantic import BaseModel
 
 
 class Metadata(BaseModel):
-    date: Optional[str]
-    role:Optional[str]
+    work_type: Optional[str] = ""
+    payment: Optional[str] = ""
+    experience: Optional[str] = ""
