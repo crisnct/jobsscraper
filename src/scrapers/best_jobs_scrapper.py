@@ -1,14 +1,12 @@
 import asyncio
 import itertools
-from typing import Coroutine, List, Self
-from models.metadata import Metadata
-from scrapers.scrapper import Scrapper
-from models.filter import Filter
-from playwright.async_api import async_playwright, Page, Browser, Locator
-from models.response import AppResponse
-from models.result import Result
-from models.statistic import Statistic
-from screper_selectors.best_jobs_selectors import BestJobsSelectors
+from typing import Coroutine, List
+from playwright.async_api import async_playwright, Page, Browser
+from src.models.metadata import Metadata
+from src.models.response import AppResponse
+from src.models.result import Result
+from src.scrapers.scrapper import Scrapper
+from src.screper_selectors.best_jobs_selectors import BestJobsSelectors
 
 class BestJobsScrapper(Scrapper):
     def __init__(self, filter):

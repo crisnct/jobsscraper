@@ -1,7 +1,8 @@
 from typing import List, Optional
 from pydantic import BaseModel
-from models.result import Result
-from models.statistic import Statistic
+
+from src.models.result import Result
+from src.models.statistic import Statistic
 
 
 class AppResponse(BaseModel):

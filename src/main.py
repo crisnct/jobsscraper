@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from scrapers.best_jobs_scrapper import BestJobsScrapper
-from models.filter import Filter
-from models.response import AppResponse
-from src.scraper_handler import ScraperHandler
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from src.models.filter import Filter
+from src.models.response import AppResponse
+from src.scrapers.best_jobs_scrapper import BestJobsScrapper
 from slowapi.middleware import SlowAPIMiddleware
+
 
 app = FastAPI()
 limiter = Limiter(key_func=get_remote_address)
