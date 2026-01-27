@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from scrapers.best_jobs_scrapper import BestJobsScrapper
 from models.filter import Filter
@@ -25,7 +25,7 @@ async def read_root():
 
 @app.post("/scrape/jobs")
 @limiter.limit("10/minute") # Limit to 10 requests per minute per IP
-async def getScrapedJobs(request_body:Filter) -> AppResponse: 
+async def getScrapedJobs(request:Request, request_body:Filter) -> AppResponse: 
     try:
         return await BestJobsScrapper(filter=request_body).scrape()
     except Exception as e:

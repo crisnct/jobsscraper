@@ -8,6 +8,7 @@ from playwright.async_api import async_playwright, Page, Browser, Locator
 from models.response import AppResponse
 from models.result import Result
 from models.statistic import Statistic
+from screper_selectors.best_jobs_selectors import BestJobsSelectors
 
 class BestJobsScrapper(Scrapper):
     def __init__(self, filter):
@@ -19,9 +20,9 @@ class BestJobsScrapper(Scrapper):
         return self
     
     def __buildSearchUrls (self) -> List[str]:
-        baseUrl = "https://www.bestjobs.eu/"
+        baseUrl = BestJobsSelectors.BASE_URL.value
         if(self.filter.location):
-            baseUrl+= 'locuri-de-munca-in-'+self.filter.location
+            baseUrl+= BestJobsSelectors.LOCATION_SEARCH.value + self.filter.location
         return [baseUrl + "/"+role for role in self.filter.roles]
     async def __generate_page(self,browser:Browser) -> Page:
         context = await browser.new_context()
@@ -30,10 +31,10 @@ class BestJobsScrapper(Scrapper):
         return page
 
     async def __scrape_hrefs(self,page:Page) -> List[Metadata]:    
-        return ["https://www.bestjobs.eu" + await selector.get_attribute("href") for selector in await page.locator("a[href].absolute.inset-0.z-1").all()]
+        return [BestJobsSelectors.BASE_URL.value + await selector.get_attribute("href") for selector in await page.locator(BestJobsSelectors.JOB_URL.value).all()]
 
     async def __scrape_companies(self,page:Page) -> str:
-        return [await selector.text_content() for selector in await page.locator("div.mt-2.line-clamp-1.w-full.text-sm.text-ink-medium").all()]
+        return [await selector.text_content() for selector in await page.locator(BestJobsSelectors.COMPANY_NAME.value).all()]
     async def __scrape_metadata(self, page:Page, jobUrl:str)-> Metadata:
         try:
             print(jobUrl)
@@ -42,12 +43,12 @@ class BestJobsScrapper(Scrapper):
             await page.wait_for_load_state("domcontentloaded") 
             await page.evaluate("window.scrollTo(0, 0)")
             metadata = Metadata()
-            payment_locator = page.locator("div.ml-2 span.text-base.font-bold").nth(0)
-            experience = ", ".join([await selector.text_content() for selector in await page.locator("div.ml-2 a.hover\\:text-ink").all()])
+            payment_locator = page.locator(BestJobsSelectors.PAYMENT.value).nth(0)
+            experience = ", ".join([await selector.text_content() for selector in await page.locator(BestJobsSelectors.EXPERIENCE.value).all()])
             metadata.experience = experience
             if await payment_locator.is_visible():
                 metadata.payment = await payment_locator.text_content()
-            work_type_locator = page.locator("div.flex-1 span.font-bold").nth(1)
+            work_type_locator = page.locator(BestJobsSelectors.WORK_TYPE.value).nth(1)
             if await work_type_locator.is_visible():
                 metadata.work_type = await work_type_locator.text_content()
             print(metadata)
