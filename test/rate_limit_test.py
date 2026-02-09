@@ -1,5 +1,8 @@
 import sys
 import os
+from typing import List
+
+from src.models.filter import Filter
 
 # Get the absolute path to the project root (parent of test folder)
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -52,6 +55,28 @@ def test_rate_limit_scrape_jobs():
     assert rate_limited == 1, f"Expected 1 rate limited request, got {rate_limited}"
     
     print("✓ Rate limit test PASSED!")
+
+
+filters:List[Filter] = [
+    {
+        "location": "timisoara",
+        "roles": ["java developer"]
+    },
+    {
+        "location": "cluj",
+        "roles": ["python developer"]
+    },
+    {
+        "location": "bucuresti",
+        "roles": ["frontend developer"]
+    },
+    {
+        "location": "iasi",
+        "roles": ["fullstack developer"]
+    }
+]
+
+
 
 if __name__ == "__main__":
     test_rate_limit_scrape_jobs()

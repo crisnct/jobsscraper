@@ -11,4 +11,4 @@ class Filter(BaseModel):
     hybrid: Optional[bool] = False
     onsite: Optional[bool] = False
     exclude: Optional[List[str]] = []
-    max_results: Optional[int] = 20
+    max_results: Optional[int] = 10

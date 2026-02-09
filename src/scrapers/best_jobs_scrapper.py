@@ -1,12 +1,14 @@
+from ast import pattern
 import asyncio
 import itertools
+import re
 from typing import Coroutine, List
 from playwright.async_api import async_playwright, Page, Browser
 from src.models.metadata import Metadata
 from src.models.response import AppResponse
 from src.models.result import Result
 from src.scrapers.scrapper import Scrapper
-from src.screper_selectors.best_jobs_selectors import BestJobsSelectors
+from src.scrapper_selectors.best_jobs_selectors import BestJobsSelectors
 
 class BestJobsScrapper(Scrapper):
     def __init__(self, filter):
@@ -33,13 +35,27 @@ class BestJobsScrapper(Scrapper):
 
     async def __scrape_companies(self,page:Page) -> str:
         return [await selector.text_content() for selector in await page.locator(BestJobsSelectors.COMPANY_NAME.value).all()]
+    async def __validate_url(self, page:Page, keywords:List[str], job_url:str) -> bool:
+        await page.goto(job_url)
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        await page.wait_for_load_state("networkidle") 
+        await page.evaluate("window.scrollTo(0, 0)")
+        visible_text = await page.locator("body").text_content()
+        visible_text = visible_text.lower()
+        visible_text = re.sub(r'ex:\s*[^\s]*\s*[^\s]*', '', visible_text, flags=re.IGNORECASE)
+        for keyword in keywords:
+            if not re.search(rf'\b{keyword}\b', visible_text):
+                return False    
+        return True
+   
     async def __scrape_metadata(self, page:Page, jobUrl:str)-> Metadata:
         try:
             print(jobUrl)
             await page.goto(jobUrl)
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.wait_for_load_state("domcontentloaded") 
+            await page.wait_for_load_state("networkidle") 
             await page.evaluate("window.scrollTo(0, 0)")
+            
             metadata = Metadata()
             payment_locator = page.locator(BestJobsSelectors.PAYMENT.value).nth(0)
             experience = ", ".join([await selector.text_content() for selector in await page.locator(BestJobsSelectors.EXPERIENCE.value).all()])
@@ -55,12 +71,23 @@ class BestJobsScrapper(Scrapper):
             raise
         finally:
             await page.close()
-        
+    async def __get_job_urls(self, page:Page, url:str) -> List[str]:
+        try:
+            await page.goto(url)
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await page.wait_for_load_state("networkidle") 
+            await page.evaluate("window.scrollTo(0, 0)")
+            return [BestJobsSelectors.BASE_URL.value + await selector.get_attribute("href") for selector in await page.locator(BestJobsSelectors.JOB_URL.value).all()]
+        except Exception:
+            raise
+        finally:
+            await page.close()        
+
     async def __scrape_page(self,page:Page, url:str) -> zip:
         try:
             await page.goto(url)
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.wait_for_load_state("domcontentloaded") 
+            await page.wait_for_load_state("networkidle") 
             await page.evaluate("window.scrollTo(0, 0)")
             hrefs = await self.__scrape_hrefs(page)
             companies = await self.__scrape_companies(page)
@@ -82,24 +109,27 @@ class BestJobsScrapper(Scrapper):
         search_urls = self.__buildSearchUrls()
         async with async_playwright() as p:
             try:
-                
+                results:List[Result] = []
                 browser = await p.chromium.launch()
-                response = await asyncio.gather(*[self.__delay_task(3,self.__scrape_page(page=await self.__generate_page(browser), url=url)) 
-                                                  for url 
-                                                  in search_urls], 
-                                                  return_exceptions=True)
-                datas = list(itertools.chain(*response))
-                metadatas:List[Metadata] = await asyncio.gather(*[self.__delay_task(3, self.__scrape_metadata(await self.__generate_page(browser), jobUrl=job_url)) 
-                                                  for (job_url,_) 
-                                                  in datas], 
-                                                  return_exceptions=True)
-               
-                results = [Result(company=company, job_url=job_url, meta_info=metadata) 
-                           for (job_url,company), metadata 
-                           in zip(datas, metadatas)]
-                
+                job_urls = await asyncio.gather(*[self.__delay_task(3,self.__get_job_urls(await self.__generate_page(browser), url=url)) 
+                                                        for url in search_urls],
+                                                        return_exceptions=True)
+                for job_url in list(itertools.chain(*job_urls)):
+                    if len(results) < self.filter.max_results:
+                        
+                        # validate url
+                        # if valid, scrape metadata
+                        # if metadata matches filter, add to results
+                        print(f"Validating {job_url}...")
+                       
+                        if await self.__validate_url(page=await self.__generate_page(browser), keywords=self.filter.keywords, job_url=job_url):
+                            metadata= await self.__scrape_metadata(page=await self.__generate_page(browser), jobUrl=job_url)
+                            results.append(Result(job_url=job_url, meta_info=metadata))
+                            print(metadata)
+                           
                 return AppResponse(
                   results=results
+
                 )
             except Exception:
                 raise

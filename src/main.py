@@ -23,7 +23,7 @@ app.add_middleware(SlowAPIMiddleware)
 async def read_root():
     return {"Hello": "World"}
 
-@app.post("/scrape/jobs")
+@app.post("/search/jobs")
 @limiter.limit("10/minute") # Limit to 10 requests per minute per IP
 async def getScrapedJobs(request:Request, request_body:Filter) -> AppResponse: 
     try:
