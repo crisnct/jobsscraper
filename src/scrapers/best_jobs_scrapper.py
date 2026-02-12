@@ -4,26 +4,28 @@ import itertools
 import re
 from typing import Coroutine, List
 from playwright.async_api import async_playwright, Page, Browser
-from src.models.metadata import Metadata
-from src.models.response import AppResponse
-from src.models.result import Result
+
+
+from src.common.filters.best_jobs_filter import BestJobsFilter
+from src.common.models.best_jobs_models.metadata import Metadata
+from src.common.models.best_jobs_models.response import AppResponse
+from src.common.models.best_jobs_models.result import Result
+from src.common.selectors.best_jobs_selectors import BestJobsSelectors
 from src.scrapers.scrapper import Scrapper
-from src.scrapper_selectors.best_jobs_selectors import BestJobsSelectors
+
 
 class BestJobsScrapper(Scrapper):
-    def __init__(self, filter):
+    def __init__(self, filter:BestJobsFilter):
         super().__init__(filter)
     def __formatRoles(self):
         if(self.filter.roles):
             self.filter.roles = [role.replace(" ", "-") for role in self.filter.roles]
-            return self
-        return self
     
     def __buildSearchUrls (self) -> List[str]:
         baseUrl = BestJobsSelectors.BASE_URL.value
         if(self.filter.location):
-            baseUrl+= BestJobsSelectors.LOCATION_SEARCH.value + self.filter.location
-        return [baseUrl + "/"+role for role in self.filter.roles]
+            baseUrl+= "/" +  BestJobsSelectors.LOCATION_SEARCH.value + self.filter.location
+        return [baseUrl + role for role in self.filter.roles]
     async def __generate_page(self,browser:Browser) -> Page:
         context = await browser.new_context()
         page = await context.new_page()
@@ -114,6 +116,7 @@ class BestJobsScrapper(Scrapper):
                 job_urls = await asyncio.gather(*[self.__delay_task(3,self.__get_job_urls(await self.__generate_page(browser), url=url)) 
                                                         for url in search_urls],
                                                         return_exceptions=True)
+                print(job_urls)
                 for job_url in list(itertools.chain(*job_urls)):
                     if len(results) < self.filter.max_results:
                         

@@ -1,7 +1,9 @@
 
 from typing import Optional
 from pydantic import BaseModel
-from src.models.metadata import Metadata
+
+from src.common.models.best_jobs_models.metadata import Metadata
+
 
 
 class Result(BaseModel):

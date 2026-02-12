@@ -1,8 +1,10 @@
+
 from typing import List, Optional
 from pydantic import BaseModel
 
-from src.models.result import Result
-from src.models.statistic import Statistic
+from src.common.models.best_jobs_models.result import Result
+from src.common.models.best_jobs_models.statistic import Statistic
+
 
 
 class AppResponse(BaseModel):

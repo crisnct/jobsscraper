@@ -2,7 +2,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class Filter(BaseModel):
+class BestJobsFilter(BaseModel):
     platform: Optional[str] = None
     keywords: Optional[List[str]] = []
     location: Optional[str] = None

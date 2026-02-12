@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
-from src.models.filter import Filter
+from src.common.types.filter_options import FilterOptions
+
+
+
 
 class Scrapper(ABC):
-    def __init__(self, filter: Filter):
+    def __init__(self, filter: FilterOptions):
         self.filter = filter
         
     @abstractmethod

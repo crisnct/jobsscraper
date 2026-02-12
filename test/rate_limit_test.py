@@ -2,7 +2,7 @@ import sys
 import os
 from typing import List
 
-from src.models.filter import Filter
+from src.common.filters.best_jobs_filter import Filter
 
 # Get the absolute path to the project root (parent of test folder)
 current_dir = os.path.dirname(os.path.abspath(__file__))
