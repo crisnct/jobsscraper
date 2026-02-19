@@ -1,14 +1,15 @@
-from src.common.filters.best_jobs_filter import Filter
-from scrapers.scrapper import Scrapper
-from src.common.types.filter_options import FilterOptions
+from src.common.models.app_request import AppRequest
+from src.common.types.response_options import ResponseOptions
+from src.scrapers.best_jobs_scrapper import BestJobsScrapper
+from src.scrapers.scrapper import Scrapper
 
 
 class ScraperHandler():
-    def __init__(self, scrapper:Scrapper):
-        self.scrapper = scrapper
-    def set_scraper(self,scraper:Scrapper):
-        self.scrapper = scraper
-        return self
-    async def run(self,filter:FilterOptions):
-        self.scrapper.set_filter(filter)
+    def set_scraper(self,request:AppRequest):
+        match request.scrapper.value:
+            case "bestjobs":
+                self.scrapper:Scrapper = BestJobsScrapper(filter=request.filter)
+            case "ejobs":
+                pass    
+    async def run(self) -> ResponseOptions:
         return await self.scrapper.scrape()

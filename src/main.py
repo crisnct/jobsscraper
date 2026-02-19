@@ -8,7 +8,9 @@ from slowapi.util import get_remote_address
 from src.common.filters.best_jobs_filter import BestJobsFilter
 from src.common.models.app_request import AppRequest
 from src.common.models.best_jobs_models.response import AppResponse
+from src.common.types.response_options import ResponseOptions
 from src.scrapers.best_jobs_scrapper import BestJobsScrapper
+from src.scrapper_handler import ScraperHandler
 
 app = FastAPI()
 limiter = Limiter(key_func=get_remote_address)
@@ -19,6 +21,8 @@ app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(
 ))
 app.add_middleware(SlowAPIMiddleware)
 
+scraper_handler = ScraperHandler()
+
 
 @app.get("/")
 async def read_root():
@@ -26,12 +30,9 @@ async def read_root():
 
 @app.post("/search/jobs")
 @limiter.limit("10/minute") # Limit to 10 requests per minute per IP
-async def getScrapedJobs(request:Request, app_request:AppRequest) -> AppResponse: 
+async def getScrapedJobs(request:Request, app_request:AppRequest) -> ResponseOptions: 
     try:
-        match app_request.scrapper.value:
-            case "bestjobs":
-                return await BestJobsScrapper(filter=app_request.filter).scrape()
-      
+        scraper_handler.set_scraper(app_request)
+        return await scraper_handler.run()
     except Exception as e:
-        print(f"Error scraping : {e}")
-        return AppResponse()
+        raise

@@ -7,6 +7,6 @@ from src.common.models.best_jobs_models.statistic import Statistic
 
 
 
-class AppResponse(BaseModel):
+class BestJobsResponse(BaseModel):
     results: Optional[List[Result]] = []
     statistics: Optional[Statistic] = None

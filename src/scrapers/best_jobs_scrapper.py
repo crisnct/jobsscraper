@@ -37,11 +37,7 @@ class BestJobsScrapper(Scrapper):
 
     async def __scrape_companies(self,page:Page) -> str:
         return [await selector.text_content() for selector in await page.locator(BestJobsSelectors.COMPANY_NAME.value).all()]
-    async def __validate_url(self, page:Page, keywords:List[str], job_url:str) -> bool:
-        await page.goto(job_url)
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        await page.wait_for_load_state("networkidle") 
-        await page.evaluate("window.scrollTo(0, 0)")
+    async def __includes_keywords(self, page:Page, keywords:List[str]) -> bool:
         visible_text = await page.locator("body").text_content()
         visible_text = visible_text.lower()
         visible_text = re.sub(r'ex:\s*[^\s]*\s*[^\s]*', '', visible_text, flags=re.IGNORECASE)
@@ -49,7 +45,21 @@ class BestJobsScrapper(Scrapper):
             if not re.search(rf'\b{keyword}\b', visible_text):
                 return False    
         return True
-   
+    
+    async def __validate_url(self, page:Page, filters:BestJobsFilter, job_url:str) -> bool:
+        await page.goto(job_url)
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        await page.wait_for_load_state("networkidle") 
+        await page.evaluate("window.scrollTo(0, 0)")
+        work_type:List[str] = []
+        if filters.remote and filters.remote == True:
+            work_type.append("remote")
+        if filters.hybrid and filters.hybrid == True:
+            work_type.append("hybrid")
+        if filters.onsite and filters.onsite == True:
+            work_type.append("onsite")
+        return await self.__includes_keywords(page=page, keywords=work_type + filters.keywords) and not await self.__includes_keywords(page=page, keywords=filters.exclude)
+       
     async def __scrape_metadata(self, page:Page, jobUrl:str)-> Metadata:
         try:
             print(jobUrl)
@@ -67,7 +77,7 @@ class BestJobsScrapper(Scrapper):
             work_type_locator = page.locator(BestJobsSelectors.WORK_TYPE.value).nth(1)
             if await work_type_locator.is_visible():
                 metadata.work_type = await work_type_locator.text_content()
-            print(metadata)
+           
             return metadata
         except Exception:
             raise
@@ -85,25 +95,11 @@ class BestJobsScrapper(Scrapper):
         finally:
             await page.close()        
 
-    async def __scrape_page(self,page:Page, url:str) -> zip:
-        try:
-            await page.goto(url)
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.wait_for_load_state("networkidle") 
-            await page.evaluate("window.scrollTo(0, 0)")
-            hrefs = await self.__scrape_hrefs(page)
-            companies = await self.__scrape_companies(page)
-           
-            return zip(hrefs,companies)
-        except Exception:
-            raise
-        finally:
-            await page.close()
             
     async def __delay_task(self,delay:float,task:Coroutine):
         await asyncio.sleep(delay)
         return await task
-
+    
     async def scrape(self) -> AppResponse:
         if(not self.filter):
             raise "No Filter Set"
@@ -113,22 +109,26 @@ class BestJobsScrapper(Scrapper):
             try:
                 results:List[Result] = []
                 browser = await p.chromium.launch()
-                job_urls = await asyncio.gather(*[self.__delay_task(3,self.__get_job_urls(await self.__generate_page(browser), url=url)) 
+                res = await asyncio.gather(*[self.__delay_task(3,self.__get_job_urls(await self.__generate_page(browser), url=url)) 
                                                         for url in search_urls],
                                                         return_exceptions=True)
-                print(job_urls)
-                for job_url in list(itertools.chain(*job_urls)):
-                    if len(results) < self.filter.max_results:
-                        
+                
+                job_urls = list(itertools.chain(*res))
+                i:int=0
+                while i < len(job_urls) and len(results) < self.filter.max_results:
                         # validate url
                         # if valid, scrape metadata
                         # if metadata matches filter, add to results
-                        print(f"Validating {job_url}...")
-                       
-                        if await self.__validate_url(page=await self.__generate_page(browser), keywords=self.filter.keywords, job_url=job_url):
-                            metadata= await self.__scrape_metadata(page=await self.__generate_page(browser), jobUrl=job_url)
-                            results.append(Result(job_url=job_url, meta_info=metadata))
-                            print(metadata)
+                        print(f"Validating {job_urls[i]}...")
+                        crt_job_url = job_urls[i]
+                        if await self.__validate_url(
+                            page=await self.__generate_page(browser), 
+                            filters=self.filter,
+                            job_url=crt_job_url):
+                                metadata= await self.__scrape_metadata(page=await self.__generate_page(browser), jobUrl=crt_job_url)
+                                results.append(Result(job_url=crt_job_url, meta_info=metadata))
+                                
+                        i+=1
                            
                 return AppResponse(
                   results=results
