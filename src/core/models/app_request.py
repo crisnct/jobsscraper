@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from src.common.types.filter_options import FilterOptions
-from src.core.scraper_options import ScrapperOptions
+from src.common.types.scraper_options import ScrapperOptions
 
 
 class AppRequest(BaseModel):

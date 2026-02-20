@@ -5,13 +5,15 @@ import re
 from typing import Coroutine, List
 from playwright.async_api import async_playwright, Page, Browser
 
+from src.common.scrapper import Scrapper
+from src.core.filters.best_jobs_filter import BestJobsFilter
+from src.core.models.best_jobs_models.metadata import Metadata
+from src.core.models.best_jobs_models.response import BestJobsResponse
+from src.core.models.best_jobs_models.result import Result
+from src.core.selectors.best_jobs_selectors import BestJobsSelectors
 
-from src.common.filters.best_jobs_filter import BestJobsFilter
-from src.common.models.best_jobs_models.metadata import Metadata
-from src.common.models.best_jobs_models.response import AppResponse
-from src.common.models.best_jobs_models.result import Result
-from src.common.selectors.best_jobs_selectors import BestJobsSelectors
-from src.scrapers.scrapper import Scrapper
+
+
 
 
 class BestJobsScrapper(Scrapper):
@@ -100,7 +102,7 @@ class BestJobsScrapper(Scrapper):
         await asyncio.sleep(delay)
         return await task
     
-    async def scrape(self) -> AppResponse:
+    async def scrape(self) -> BestJobsResponse:
         if(not self.filter):
             raise "No Filter Set"
         self.__formatRoles()
@@ -130,7 +132,7 @@ class BestJobsScrapper(Scrapper):
                                 
                         i+=1
                            
-                return AppResponse(
+                return BestJobsResponse(
                   results=results
 
                 )

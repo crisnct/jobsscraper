@@ -2,7 +2,8 @@
 from typing import Optional
 from pydantic import BaseModel
 
-from src.common.models.best_jobs_models.metadata import Metadata
+from src.core.models.best_jobs_models.metadata import Metadata
+
 
 
 

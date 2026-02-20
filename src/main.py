@@ -5,12 +5,11 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from src.common.filters.best_jobs_filter import BestJobsFilter
-from src.common.models.app_request import AppRequest
-from src.common.models.best_jobs_models.response import AppResponse
+from src.common.scrapper_handler import ScraperHandler
 from src.common.types.response_options import ResponseOptions
-from src.scrapers.best_jobs_scrapper import BestJobsScrapper
-from src.scrapper_handler import ScraperHandler
+from src.core.models.app_request import AppRequest
+
+
 
 app = FastAPI()
 limiter = Limiter(key_func=get_remote_address)

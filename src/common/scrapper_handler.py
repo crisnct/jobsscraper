@@ -1,7 +1,10 @@
-from src.common.models.app_request import AppRequest
+
+
+
+from src.common.scrapper import Scrapper
 from src.common.types.response_options import ResponseOptions
-from src.scrapers.best_jobs_scrapper import BestJobsScrapper
-from src.scrapers.scrapper import Scrapper
+from src.core.models.app_request import AppRequest
+from src.core.scrapers.best_jobs_scrapper import BestJobsScrapper
 
 
 class ScraperHandler():
